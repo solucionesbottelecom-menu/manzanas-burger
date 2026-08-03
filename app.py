@@ -6,7 +6,7 @@ import os
 
 st.set_page_config(page_title="Manzanas Burger - Menú", page_icon="🍔", layout="wide")
 
-TU_NUMERO_WHATSAPP = "52155620962999"
+TU_NUMERO_WHATSAPP = "5215620962999"
 DATOS_TRANSFERENCIA = """
 🏦 **Banco:** BBVA / Santander
 🔢 **CLABE Interbancaria:** 123456789012345678
