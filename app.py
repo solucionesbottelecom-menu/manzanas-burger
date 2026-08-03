@@ -21,7 +21,7 @@ CARPETA_TICKETS = "comprobantes_pago"
 if not os.path.exists(CARPETA_TICKETS):
     os.makedirs(CARPETA_TICKETS)
 
-# MENÚ AMPLIADO CON CATEGORÍAS E IMÁGENES (URLs de ejemplo o locales)
+# MENÚ AMPLIADO CON CATEGORÍAS E IMÁGENES
 MENU_INICIAL = [
     {
         "ID": 1,
@@ -77,7 +77,13 @@ MENU_INICIAL = [
 
 def cargar_menu():
     if os.path.exists(ARCHIVO_INVENTARIO):
-        return pd.read_csv(ARCHIVO_INVENTARIO)
+        df = pd.read_csv(ARCHIVO_INVENTARIO)
+        # Asegurar compatibilidad si el archivo anterior no tiene la columna Categoria o Imagen
+        if "Categoria" not in df.columns:
+            df["Categoria"] = "Hamburguesas"
+        if "Imagen" not in df.columns:
+            df["Imagen"] = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500"
+        return df
     else:
         df = pd.DataFrame(MENU_INICIAL)
         df.to_csv(ARCHIVO_INVENTARIO, index=False)
@@ -140,7 +146,6 @@ if modo == "Cliente":
 
     carrito = {}
     
-    # Agrupar por categoría para mostrarlas ordenadas
     categorias = df_productos['Categoria'].unique()
     
     for cat in categorias:
@@ -151,10 +156,8 @@ if modo == "Cliente":
             col_img, col_info, col_accion = st.columns([1, 2, 1.5])
             
             with col_img:
-                if pd.notna(row['Imagen']) and row['Imagen'].startswith("http"):
-                    st.image(row['Imagen'], use_container_width=True)
-                else:
-                    st.image("https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500", use_container_width=True)
+                img_url = str(row['Imagen']) if pd.notna(row['Imagen']) and str(row['Imagen']).startswith("http") else "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500"
+                st.image(img_url, use_container_width=True)
                     
             with col_info:
                 st.markdown(f"### {row['Nombre']}")
@@ -178,7 +181,6 @@ if modo == "Cliente":
                     
                     modificaciones = []
                     if cantidad > 0:
-                        # Si es hamburguesa permitimos personalizar ingredientes
                         if cat == "Hamburguesas":
                             ingredientes_elegidos = st.multiselect(
                                 "Ingredientes:",
@@ -313,7 +315,7 @@ elif modo == "Dueño":
             n_desc = st.text_area("Descripción")
             n_precio = st.number_input("Precio (MXN)", min_value=0.0, value=50.0)
             n_stock = st.number_input("Stock Inicial", min_value=0, value=20)
-            n_img = st.text_input("URL de la Imagen (ej. enlace de internet o foto)", value="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500")
+            n_img = st.text_input("URL de la Imagen (ej. enlace web de la foto)", value="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500")
             
             btn_crear = st.form_submit_button("💾 Añadir al Menú")
             if btn_crear:
@@ -443,7 +445,7 @@ elif modo == "Dueño":
 
             st.divider()
             st.subheader("📑 Tabla General de Historial")
-            cols_a_mostrar = [c for c in ['Fecha/Hora', 'Cliente', 'Entrega', 'Dirección', 'Pago', 'Total (MXN)', 'Estatus', 'Detalle'] if c in df_historial.cols if c in df_historial.columns] if 'cols' in dir(df_historial) else [c for c in ['Fecha/Hora', 'Cliente', 'Entrega', 'Dirección', 'Pago', 'Total (MXN)', 'Estatus', 'Detalle'] if c in df_historial.columns]
+            cols_a_mostrar = [c for c in ['Fecha/Hora', 'Cliente', 'Entrega', 'Dirección', 'Pago', 'Total (MXN)', 'Estatus', 'Detalle'] if c in df_historial.columns]
             st.dataframe(df_historial[cols_a_mostrar], use_container_width=True)
             
             if st.button("🗑️ Borrar Todo el Historial"):
@@ -452,4 +454,4 @@ elif modo == "Dueño":
         else:
             st.info("Aún no hay pedidos registrados en el historial.")
     else:
-            st.info("Aún no hay pedidos registrados.")
+        st.info("Aún no hay pedidos registrados.")
