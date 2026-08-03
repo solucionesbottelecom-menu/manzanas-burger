@@ -7,7 +7,7 @@ import os
 # CONFIGURACIÓN GENERAL
 st.set_page_config(page_title="Manzanas Burger - Sistema", page_icon="🍔", layout="wide")
 
-TU_NUMERO_WHATSAPP = "5215620962999"
+TU_NUMERO_WHATSAPP = "5215500000000"
 DATOS_TRANSFERENCIA = """
 🏦 **Banco:** BBVA / Santander
 🔢 **CLABE Interbancaria:** 123456789012345678
@@ -21,7 +21,6 @@ CARPETA_TICKETS = "comprobantes_pago"
 if not os.path.exists(CARPETA_TICKETS):
     os.makedirs(CARPETA_TICKETS)
 
-# MENÚ INICIAL POR DEFECTO
 MENU_INICIAL = [
     {
         "ID": 1,
@@ -80,14 +79,30 @@ def guardar_pedido(nombre, metodo_entrega, direccion, forma_pago, total, detalle
         
     df_hist.to_csv(ARCHIVO_HISTORIAL, index=False)
 
-# NAVEGACIÓN POR SIDEBAR PARA SEPARAR CLIENTE Y DUEÑO
+# CONTROL DE ACCESO MEDIANTE CONTRASEÑA EN LA BARRA LATERAL
 st.sidebar.title("🍔 Menú de Navegación")
-modo = st.sidebar.radio("Selecciona la vista:", ["🛒 Vista Clientes (Hacer Pedido)", "🔐 Vista Dueño (Administración)"])
+opcion_vista = st.sidebar.selectbox("Selecciona la vista:", ["🛒 Vista Clientes (Hacer Pedido)", "🔐 Vista Dueño (Administración)"])
+
+if opcion_vista == "🔐 Vista Dueño (Administración)":
+    st.sidebar.markdown("---")
+    password_ingresado = st.sidebar.text_input("Contraseña de Dueño:", type="password")
+    # CAMBIA "tu_contraseña_segura" por la contraseña que quieras usar
+    PASSWORD_CORRECTO = "123456" 
+    
+    if password_ingresado != PASSWORD_CORRECTO:
+        modo = "Bloqueado"
+        if password_ingresado != "":
+            st.sidebar.error("Contraseña incorrecta")
+    else:
+        modo = "Dueño"
+        st.sidebar.success("Acceso concedido")
+else:
+    modo = "Cliente"
 
 # ==========================================
 # VISTA 1: CLIENTES
 # ==========================================
-if modo == "🛒 Vista Clientes (Hacer Pedido)":
+if modo == "Cliente":
     st.title("🍔 Manzanas Burger - Sistema de Pedidos")
     st.markdown("Elige tus hamburguesas, personaliza y selecciona tu forma de pago.")
 
@@ -243,9 +258,16 @@ if modo == "🛒 Vista Clientes (Hacer Pedido)":
             st.markdown(f'<a href="{whatsapp_url}" target="_blank"><button style="background-color:#25D366;color:white;padding:12px 24px;border-radius:8px;border:none;cursor:pointer;font-size:16px;font-weight:bold;">📲 Enviar Pedido por WhatsApp</button></a>', unsafe_allow_html=True)
 
 # ==========================================
+# ESTADO BLOQUEADO (SI NO PONEN CONTRASEÑA)
+# ==========================================
+elif modo == "Bloqueado":
+    st.title("🔒 Acceso Restringido")
+    st.warning("Esta sección es exclusiva para el dueño del negocio. Por favor ingresa la contraseña correcta en la barra lateral izquierda para desbloquear el panel.")
+
+# ==========================================
 # VISTA 2: DUEÑO / ADMINISTRACIÓN
 # ==========================================
-elif modo == "🔐 Vista Dueño (Administración)":
+elif modo == "Dueño":
     st.title("🔐 Panel de Administración - Dueño")
     st.markdown("Gestiona tus ventas, cambia el estatus de los pedidos y controla el inventario (marcar productos agotados).")
 
