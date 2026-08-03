@@ -4,8 +4,29 @@ import urllib.parse
 from datetime import datetime
 import os
 
-# CONFIGURACIÓN GENERAL
+# CONFIGURACIÓN GENERAL Y ESTILOS DE MARCA
 st.set_page_config(page_title="Manzanas Burger - Sistema", page_icon="🍔", layout="wide")
+
+# PERSONALIZACIÓN DE FORMATO Y ESTILOS (Colores de la marca)
+st.markdown("""
+    <style>
+    .stApp {
+        background-color: #0e1117;
+        color: #ffffff;
+    }
+    .main-header {
+        font-size: 2.5rem;
+        color: #ff4b4b;
+        font-weight: 700;
+    }
+    .card-product {
+        background-color: #1f2937;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 TU_NUMERO_WHATSAPP = "5215500000000"
 DATOS_TRANSFERENCIA = """
@@ -21,7 +42,7 @@ CARPETA_TICKETS = "comprobantes_pago"
 if not os.path.exists(CARPETA_TICKETS):
     os.makedirs(CARPETA_TICKETS)
 
-# MENÚ AMPLIADO CON CATEGORÍAS E IMÁGENES
+# MENÚ INICIAL AMPLIADO
 MENU_INICIAL = [
     {
         "ID": 1,
@@ -45,16 +66,6 @@ MENU_INICIAL = [
     },
     {
         "ID": 3,
-        "Categoria": "Hamburguesas",
-        "Nombre": "Hamburguesa de Pollo",
-        "Descripcion": "Filete de pollo crujiente, queso Oaxaca fundido, pepinillos, jitomate, cebolla caramelizada, cátsup, mostaza y chiles.",
-        "Precio": 95.0,
-        "Stock": 20,
-        "Estado": "Disponible",
-        "Imagen": "https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?w=500"
-    },
-    {
-        "ID": 4,
         "Categoria": "Hot Dogs",
         "Nombre": "Hot Dog Clásico",
         "Descripcion": "Salchicha de res envuelta en tocino, jitomate picado, cebolla, cátsup, mostaza y mayonesa.",
@@ -64,7 +75,7 @@ MENU_INICIAL = [
         "Imagen": "https://images.unsplash.com/photo-1619740455993-9e3c23e7e59f?w=500"
     },
     {
-        "ID": 5,
+        "ID": 4,
         "Categoria": "Bebidas",
         "Nombre": "Refresco de Lata (600ml)",
         "Descripcion": "Coca-Cola, Sprite o Fanta bien fría.",
@@ -78,7 +89,7 @@ MENU_INICIAL = [
 def cargar_menu():
     if os.path.exists(ARCHIVO_INVENTARIO):
         df = pd.read_csv(ARCHIVO_INVENTARIO)
-        # Asegurar compatibilidad si el archivo anterior no tiene la columna Categoria o Imagen
+        # Validar columnas críticas para evitar errores si el archivo es antiguo
         if "Categoria" not in df.columns:
             df["Categoria"] = "Hamburguesas"
         if "Imagen" not in df.columns:
@@ -112,7 +123,7 @@ def guardar_pedido(nombre, metodo_entrega, direccion, forma_pago, total, detalle
         
     df_hist.to_csv(ARCHIVO_HISTORIAL, index=False)
 
-# CONTROL DE ACCESO EN BARRA LATERAL
+# BARRA LATERAL DE NAVEGACIÓN
 st.sidebar.title("🍔 Menú de Navegación")
 opcion_vista = st.sidebar.selectbox("Selecciona la vista:", ["🛒 Vista Clientes (Hacer Pedido)", "🔐 Vista Dueño (Administración)"])
 
@@ -135,7 +146,7 @@ else:
 # VISTA 1: CLIENTES
 # ==========================================
 if modo == "Cliente":
-    st.title("🍔 Manzanas Burger - Sistema de Pedidos")
+    st.markdown('<p class="main-header">🍔 Manzanas Burger</p>', unsafe_allow_html=True)
     st.markdown("Elige tus productos favoritos, personaliza y selecciona tu forma de pago.")
 
     df_productos = cargar_menu()
@@ -145,7 +156,6 @@ if modo == "Cliente":
     st.subheader("📋 Menú por Categorías")
 
     carrito = {}
-    
     categorias = df_productos['Categoria'].unique()
     
     for cat in categorias:
@@ -286,7 +296,6 @@ if modo == "Cliente":
                 datos_cliente += "\n"
                 
             mensaje_final = mensaje_pedido + datos_cliente
-            
             mensaje_codificado = urllib.parse.quote(mensaje_final)
             whatsapp_url = f"https://wa.me/{TU_NUMERO_WHATSAPP}?text={mensaje_codificado}"
             
@@ -305,17 +314,17 @@ elif modo == "Bloqueado":
 # ==========================================
 elif modo == "Dueño":
     st.title("🔐 Panel de Administración - Dueño")
-    st.markdown("Gestiona inventario, marca productos agotados, agrega nuevos platillos y revisa ventas.")
+    st.markdown("Agrega productos, edita imágenes por URL, cambia precios, controla el stock y revisa tus ventas.")
 
-    # 1. AGREGAR NUEVO PRODUCTO AL MENÚ
-    with st.expander("➕ Agregar Nuevo Producto (Hamburguesa, Hot Dog, Bebida, etc.)"):
+    # 1. AGREGAR NUEVO PRODUCTO
+    with st.expander("➕ Agregar Nuevo Producto (Hamburguesas, Hot Dogs, Bebidas, etc.)"):
         with st.form("form_nuevo_prod"):
             n_cat = st.selectbox("Categoría", ["Hamburguesas", "Hot Dogs", "Bebidas", "Extras", "Postres"])
             n_nombre = st.text_input("Nombre del Producto")
             n_desc = st.text_area("Descripción")
             n_precio = st.number_input("Precio (MXN)", min_value=0.0, value=50.0)
             n_stock = st.number_input("Stock Inicial", min_value=0, value=20)
-            n_img = st.text_input("URL de la Imagen (ej. enlace web de la foto)", value="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500")
+            n_img = st.text_input("URL de la Imagen (pega el enlace web de la foto)", value="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500")
             
             btn_crear = st.form_submit_button("💾 Añadir al Menú")
             if btn_crear:
@@ -338,30 +347,33 @@ elif modo == "Dueño":
 
     st.markdown("---")
 
-    # 2. GESTIÓN DE INVENTARIO Y DISPONIBILIDAD EXISTENTE
-    st.subheader("🍔 Control de Menú, Fotos, Precios y Disponibilidad (Agotados)")
+    # 2. GESTIÓN Y EDICIÓN DE IMÁGENES Y DATOS EXISTENTES
+    st.subheader("🍔 Editar Productos, Cambiar Imágenes (URLs) y Precios")
     df_menu = cargar_menu()
     
     with st.form("form_inventario"):
-        st.write("Modifica los datos, precios, estatus (Agotado/Disponible) o imágenes de tus productos:")
+        st.write("Modifica los datos, nombre, categoría, URL de imagen o estatus de cada producto:")
         nuevos_datos = []
         for idx, row in df_menu.iterrows():
-            st.markdown(f"### ID {row['ID']} - {row['Nombre']} ({row['Categoria']})")
-            c1, c2, c3, c4 = st.columns(4)
+            st.markdown(f"### ID {row['ID']} - {row['Nombre']}")
+            c1, c2, c3 = st.columns(3)
             with c1:
-                n_est = st.selectbox("Estatus", ["Disponible", "🚫 Agotado"], index=0 if row['Estado']=="Disponible" else 1, key=f"est_{idx}")
+                n_cat = st.text_input("Categoría", value=str(row['Categoria']), key=f"cat_{idx}")
+                n_nom = st.text_input("Nombre", value=str(row['Nombre']), key=f"nom_{idx}")
             with c2:
+                n_pre = st.number_input("Precio ($)", min_value=0.0, value=float(row['Precio']), key=f"pre_{idx}")
                 n_stk = st.number_input("Stock", min_value=0, value=int(row['Stock']), key=f"stk_{idx}")
             with c3:
-                n_pre = st.number_input("Precio ($)", min_value=0.0, value=float(row['Precio']), key=f"pre_{idx}")
-            with c4:
-                n_im = st.text_input("URL Imagen", value=str(row['Imagen']), key=f"img_{idx}")
+                n_est = st.selectbox("Estatus", ["Disponible", "🚫 Agotado"], index=0 if row['Estado']=="Disponible" else 1, key=f"est_{idx}")
+                n_im = st.text_input("URL de Imagen", value=str(row['Imagen']), key=f"img_{idx}")
+            
+            n_desc = st.text_area("Descripción", value=str(row['Descripcion']), key=f"desc_{idx}")
             
             nuevos_datos.append({
                 "ID": row['ID'],
-                "Categoria": row['Categoria'],
-                "Nombre": row['Nombre'],
-                "Descripcion": row['Descripcion'],
+                "Categoria": n_cat,
+                "Nombre": n_nom,
+                "Descripcion": n_desc,
                 "Precio": n_pre,
                 "Stock": n_stk,
                 "Estado": n_est,
@@ -369,11 +381,11 @@ elif modo == "Dueño":
             })
             st.divider()
             
-        btn_actualizar_menu = st.form_submit_button("💾 Guardar Cambios del Menú")
+        btn_actualizar_menu = st.form_submit_button("💾 Guardar Todos los Cambios del Menú")
         if btn_actualizar_menu:
             df_updated = pd.DataFrame(nuevos_datos)
             df_updated.to_csv(ARCHIVO_INVENTARIO, index=False)
-            st.success("¡Menú actualizado correctamente!")
+            st.success("¡Menú y diseño actualizados correctamente!")
             st.rerun()
 
     st.markdown("---")
