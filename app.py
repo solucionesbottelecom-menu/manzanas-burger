@@ -7,7 +7,7 @@ import os
 # CONFIGURACIÓN GENERAL
 st.set_page_config(page_title="Manzanas Burger - Sistema", page_icon="🍔", layout="wide")
 
-TU_NUMERO_WHATSAPP = "5215620962999"
+TU_NUMERO_WHATSAPP = "5215500000000"
 DATOS_TRANSFERENCIA = """
 🏦 **Banco:** BBVA / Santander
 🔢 **CLABE Interbancaria:** 123456789012345678
@@ -21,30 +21,57 @@ CARPETA_TICKETS = "comprobantes_pago"
 if not os.path.exists(CARPETA_TICKETS):
     os.makedirs(CARPETA_TICKETS)
 
+# MENÚ AMPLIADO CON CATEGORÍAS E IMÁGENES (URLs de ejemplo o locales)
 MENU_INICIAL = [
     {
         "ID": 1,
+        "Categoria": "Hamburguesas",
         "Nombre": "Hamburguesa Sencilla",
         "Descripcion": "Carne clásica, pepinillos, jitomate, cebolla caramelizada, cátsup, mostaza y chiles.",
         "Precio": 85.0,
         "Stock": 20,
-        "Estado": "Disponible"
+        "Estado": "Disponible",
+        "Imagen": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500"
     },
     {
         "ID": 2,
+        "Categoria": "Hamburguesas",
         "Nombre": "Hamburguesa Doble",
         "Descripcion": "Doble porción de carne, queso Oaxaca fundido, pepinillos, jitomate, cebolla caramelizada, cátsup, mostaza y chiles.",
         "Precio": 115.0,
         "Stock": 20,
-        "Estado": "Disponible"
+        "Estado": "Disponible",
+        "Imagen": "https://images.unsplash.com/photo-1607013251379-e6eecfffe234?w=500"
     },
     {
         "ID": 3,
+        "Categoria": "Hamburguesas",
         "Nombre": "Hamburguesa de Pollo",
-        "Descripcion": "Filete de pollo crujiente o a la plancha, queso Oaxaca fundido, pepinillos, jitomate, cebolla caramelizada, cátsup, mostaza y chiles.",
+        "Descripcion": "Filete de pollo crujiente, queso Oaxaca fundido, pepinillos, jitomate, cebolla caramelizada, cátsup, mostaza y chiles.",
         "Precio": 95.0,
         "Stock": 20,
-        "Estado": "Disponible"
+        "Estado": "Disponible",
+        "Imagen": "https://images.unsplash.com/photo-1625813506062-0aeb1d7a094b?w=500"
+    },
+    {
+        "ID": 4,
+        "Categoria": "Hot Dogs",
+        "Nombre": "Hot Dog Clásico",
+        "Descripcion": "Salchicha de res envuelta en tocino, jitomate picado, cebolla, cátsup, mostaza y mayonesa.",
+        "Precio": 45.0,
+        "Stock": 25,
+        "Estado": "Disponible",
+        "Imagen": "https://images.unsplash.com/photo-1619740455993-9e3c23e7e59f?w=500"
+    },
+    {
+        "ID": 5,
+        "Categoria": "Bebidas",
+        "Nombre": "Refresco de Lata (600ml)",
+        "Descripcion": "Coca-Cola, Sprite o Fanta bien fría.",
+        "Precio": 30.0,
+        "Stock": 40,
+        "Estado": "Disponible",
+        "Imagen": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?w=500"
     }
 ]
 
@@ -79,14 +106,13 @@ def guardar_pedido(nombre, metodo_entrega, direccion, forma_pago, total, detalle
         
     df_hist.to_csv(ARCHIVO_HISTORIAL, index=False)
 
-# CONTROL DE ACCESO MEDIANTE CONTRASEÑA EN LA BARRA LATERAL
+# CONTROL DE ACCESO EN BARRA LATERAL
 st.sidebar.title("🍔 Menú de Navegación")
 opcion_vista = st.sidebar.selectbox("Selecciona la vista:", ["🛒 Vista Clientes (Hacer Pedido)", "🔐 Vista Dueño (Administración)"])
 
 if opcion_vista == "🔐 Vista Dueño (Administración)":
     st.sidebar.markdown("---")
     password_ingresado = st.sidebar.text_input("Contraseña de Dueño:", type="password")
-    # CAMBIA "tu_contraseña_segura" por la contraseña que quieras usar
     PASSWORD_CORRECTO = "123456" 
     
     if password_ingresado != PASSWORD_CORRECTO:
@@ -104,85 +130,93 @@ else:
 # ==========================================
 if modo == "Cliente":
     st.title("🍔 Manzanas Burger - Sistema de Pedidos")
-    st.markdown("Elige tus hamburguesas, personaliza y selecciona tu forma de pago.")
+    st.markdown("Elige tus productos favoritos, personaliza y selecciona tu forma de pago.")
 
     df_productos = cargar_menu()
     ingredientes_base = ["Pepinillos", "Jitomate", "Cebolla caramelizada", "Cátsup", "Mostaza", "Chiles"]
 
     st.divider()
-    st.subheader("📋 Menú y Personalización")
+    st.subheader("📋 Menú por Categorías")
 
     carrito = {}
-    col_menu, col_carrito = st.columns([2, 1])
-
-    with col_menu:
-        for index, row in df_productos.iterrows():
-            st.markdown(f"### {row['Nombre']}")
-            st.write(f"_{row['Descripcion']}_")
-            st.text(f"Precio: ${row['Precio']:.2f} MXN")
+    
+    # Agrupar por categoría para mostrarlas ordenadas
+    categorias = df_productos['Categoria'].unique()
+    
+    for cat in categorias:
+        st.markdown(f"## 🏷️ {cat}")
+        productos_cat = df_productos[df_productos['Categoria'] == cat]
+        
+        for index, row in productos_cat.iterrows():
+            col_img, col_info, col_accion = st.columns([1, 2, 1.5])
             
-            # Validar si está agotado
-            if row['Estado'] == "🚫 Agotado" or row['Stock'] <= 0:
-                st.error("🚫 Producto Agotado temporalmente")
-                st.divider()
-                continue
+            with col_img:
+                if pd.notna(row['Imagen']) and row['Imagen'].startswith("http"):
+                    st.image(row['Imagen'], use_container_width=True)
+                else:
+                    st.image("https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500", use_container_width=True)
+                    
+            with col_info:
+                st.markdown(f"### {row['Nombre']}")
+                st.write(f"_{row['Descripcion']}_")
+                st.text(f"Precio: ${row['Precio']:.2f} MXN")
                 
-            st.text(f"Disponibles: {row['Stock']}")
+                if row['Estado'] == "🚫 Agotado" or row['Stock'] <= 0:
+                    st.error("🚫 Producto Agotado temporalmente")
+                else:
+                    st.text(f"Disponibles: {row['Stock']}")
             
-            c1, c2 = st.columns([1, 2])
-            with c1:
-                cantidad = st.number_input(
-                    "Cantidad",
-                    min_value=0,
-                    max_value=int(row['Stock']),
-                    value=0,
-                    key=f"cant_{index}"
-                )
-            
-            modificaciones = []
-            if cantidad > 0:
-                with c2:
-                    st.markdown("**Personalizar ingredientes:**")
-                    ingredientes_elegidos = st.multiselect(
-                        "Ingredientes:",
-                        options=ingredientes_base,
-                        default=ingredientes_base,
-                        key=f"ing_{index}",
-                        label_visibility="collapsed"
+            with col_accion:
+                if row['Estado'] != "🚫 Agotado" and row['Stock'] > 0:
+                    cantidad = st.number_input(
+                        f"Cantidad ({row['Nombre']})",
+                        min_value=0,
+                        max_value=int(row['Stock']),
+                        value=0,
+                        key=f"cant_{index}"
                     )
                     
-                    quitados = [ing for ing in ingredientes_base if ing not in ingredientes_elegidos]
-                    if quitados:
-                        modificaciones.append(f"Sin {', *'.join(quitados)}")
-                    else:
-                        modificaciones.append("Receta estándar")
-                        
-                    extra_nota = st.text_input("Notas (ej. bien doradita):", key=f"nota_{index}", placeholder="Ej. bien doradita")
-                    if extra_nota:
-                        modificaciones.append(f"Nota: {extra_nota}")
+                    modificaciones = []
+                    if cantidad > 0:
+                        # Si es hamburguesa permitimos personalizar ingredientes
+                        if cat == "Hamburguesas":
+                            ingredientes_elegidos = st.multiselect(
+                                "Ingredientes:",
+                                options=ingredientes_base,
+                                default=ingredientes_base,
+                                key=f"ing_{index}"
+                            )
+                            quitados = [ing for ing in ingredientes_base if ing not in ingredientes_elegidos]
+                            if quitados:
+                                modificaciones.append(f"Sin {', *'.join(quitados)}")
+                            else:
+                                modificaciones.append("Receta estándar")
+                        else:
+                            modificaciones.append("Estándar")
+                            
+                        extra_nota = st.text_input("Nota:", key=f"nota_{index}", placeholder="Ej. bien caliente")
+                        if extra_nota:
+                            modificaciones.append(f"Nota: {extra_nota}")
 
-                carrito[row['Nombre']] = {
-                    "precio": row['Precio'],
-                    "cantidad": cantidad,
-                    "subtotal": row['Precio'] * cantidad,
-                    "modificaciones": " | ".join(modificaciones) if modificaciones else "Receta estándar"
-                }
+                        carrito[row['Nombre']] = {
+                            "precio": row['Precio'],
+                            "cantidad": cantidad,
+                            "subtotal": row['Precio'] * cantidad,
+                            "modificaciones": " | ".join(modificaciones) if modificaciones else "Estándar"
+                        }
             st.divider()
 
     total_general = sum(info['subtotal'] for info in carrito.values())
 
-    with col_carrito:
-        st.markdown("### 🛒 Tu Carrito / Ticket")
-        if len(carrito) > 0:
-            for producto, info in carrito.items():
-                st.markdown(f"**{info['cantidad']}x {producto}**")
-                st.markdown(f"Subtotal: `${info['subtotal']:.2f} MXN`")
-                if info['modificaciones']:
-                    st.caption(f"_{info['modificaciones']}_")
-                st.markdown("---")
-            st.markdown(f"### Total: ${total_general:,.2f} MXN")
-        else:
-            st.info("Aún no has seleccionado productos.")
+    st.markdown("### 🛒 Tu Carrito / Ticket de Compra")
+    if len(carrito) > 0:
+        for producto, info in carrito.items():
+            st.markdown(f"**{info['cantidad']}x {producto}** - Subtotal: `${info['subtotal']:.2f} MXN`")
+            if info['modificaciones']:
+                st.caption(f"_{info['modificaciones']}_")
+        st.markdown(f"### Total General: ${total_general:,.2f} MXN")
+    else:
+        st.info("Aún no has seleccionado productos.")
 
     st.markdown("---")
     st.subheader("📝 Datos de Envío y Forma de Pago")
@@ -224,7 +258,7 @@ if modo == "Cliente":
         
     if st.button("🚀 Enviar Pedido por WhatsApp", type="primary"):
         if len(carrito) == 0:
-            st.warning("Selecciona al menos una hamburguesa del menú para poder hacer el pedido.")
+            st.warning("Selecciona al menos un producto del menú para poder hacer el pedido.")
         elif not nombre_cliente:
             st.warning("Ingresa tu nombre para continuar.")
         elif forma_pago == "Transferencia Bancaria" and archivo_ticket is None:
@@ -258,55 +292,91 @@ if modo == "Cliente":
             st.markdown(f'<a href="{whatsapp_url}" target="_blank"><button style="background-color:#25D366;color:white;padding:12px 24px;border-radius:8px;border:none;cursor:pointer;font-size:16px;font-weight:bold;">📲 Enviar Pedido por WhatsApp</button></a>', unsafe_allow_html=True)
 
 # ==========================================
-# ESTADO BLOQUEADO (SI NO PONEN CONTRASEÑA)
+# ESTADO BLOQUEADO
 # ==========================================
 elif modo == "Bloqueado":
     st.title("🔒 Acceso Restringido")
-    st.warning("Esta sección es exclusiva para el dueño del negocio. Por favor ingresa la contraseña correcta en la barra lateral izquierda para desbloquear el panel.")
+    st.warning("Esta sección es exclusiva para el dueño del negocio. Ingresa la contraseña en la barra lateral.")
 
 # ==========================================
 # VISTA 2: DUEÑO / ADMINISTRACIÓN
 # ==========================================
 elif modo == "Dueño":
     st.title("🔐 Panel de Administración - Dueño")
-    st.markdown("Gestiona tus ventas, cambia el estatus de los pedidos y controla el inventario (marcar productos agotados).")
+    st.markdown("Gestiona inventario, marca productos agotados, agrega nuevos platillos y revisa ventas.")
 
-    # 1. GESTIÓN DE INVENTARIO Y DISPONIBILIDAD
-    st.subheader("🍔 Control de Menú y Disponibilidad (Agotados)")
+    # 1. AGREGAR NUEVO PRODUCTO AL MENÚ
+    with st.expander("➕ Agregar Nuevo Producto (Hamburguesa, Hot Dog, Bebida, etc.)"):
+        with st.form("form_nuevo_prod"):
+            n_cat = st.selectbox("Categoría", ["Hamburguesas", "Hot Dogs", "Bebidas", "Extras", "Postres"])
+            n_nombre = st.text_input("Nombre del Producto")
+            n_desc = st.text_area("Descripción")
+            n_precio = st.number_input("Precio (MXN)", min_value=0.0, value=50.0)
+            n_stock = st.number_input("Stock Inicial", min_value=0, value=20)
+            n_img = st.text_input("URL de la Imagen (ej. enlace de internet o foto)", value="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500")
+            
+            btn_crear = st.form_submit_button("💾 Añadir al Menú")
+            if btn_crear:
+                df_m = cargar_menu()
+                nuevo_id = int(df_m['ID'].max() + 1) if not df_m.empty else 1
+                nuevo_reg_prod = pd.DataFrame([{
+                    "ID": nuevo_id,
+                    "Categoria": n_cat,
+                    "Nombre": n_nombre,
+                    "Descripcion": n_desc,
+                    "Precio": n_precio,
+                    "Stock": n_stock,
+                    "Estado": "Disponible",
+                    "Imagen": n_img
+                }])
+                df_m = pd.concat([df_m, nuevo_reg_prod], ignore_index=True)
+                df_m.to_csv(ARCHIVO_INVENTARIO, index=False)
+                st.success(f"¡{n_nombre} agregado exitosamente!")
+                st.rerun()
+
+    st.markdown("---")
+
+    # 2. GESTIÓN DE INVENTARIO Y DISPONIBILIDAD EXISTENTE
+    st.subheader("🍔 Control de Menú, Fotos, Precios y Disponibilidad (Agotados)")
     df_menu = cargar_menu()
     
     with st.form("form_inventario"):
-        st.write("Modifica el estatus o stock de las hamburguesas en tiempo real:")
+        st.write("Modifica los datos, precios, estatus (Agotado/Disponible) o imágenes de tus productos:")
         nuevos_datos = []
         for idx, row in df_menu.iterrows():
-            col1, col2, col3 = st.columns([2, 1, 1])
-            with col1:
-                st.markdown(f"**{row['Nombre']}**")
-            with col2:
-                nuevo_estado = st.selectbox("Estatus", ["Disponible", "🚫 Agotado"], index=0 if row['Estado']=="Disponible" else 1, key=f"est_{idx}")
-            with col3:
-                nuevo_stock = st.number_input("Stock", min_value=0, value=int(row['Stock']), key=f"stk_{idx}")
+            st.markdown(f"### ID {row['ID']} - {row['Nombre']} ({row['Categoria']})")
+            c1, c2, c3, c4 = st.columns(4)
+            with c1:
+                n_est = st.selectbox("Estatus", ["Disponible", "🚫 Agotado"], index=0 if row['Estado']=="Disponible" else 1, key=f"est_{idx}")
+            with c2:
+                n_stk = st.number_input("Stock", min_value=0, value=int(row['Stock']), key=f"stk_{idx}")
+            with c3:
+                n_pre = st.number_input("Precio ($)", min_value=0.0, value=float(row['Precio']), key=f"pre_{idx}")
+            with c4:
+                n_im = st.text_input("URL Imagen", value=str(row['Imagen']), key=f"img_{idx}")
             
             nuevos_datos.append({
                 "ID": row['ID'],
+                "Categoria": row['Categoria'],
                 "Nombre": row['Nombre'],
                 "Descripcion": row['Descripcion'],
-                "Precio": row['Precio'],
-                "Stock": nuevo_stock,
-                "Estado": nuevo_estado
+                "Precio": n_pre,
+                "Stock": n_stk,
+                "Estado": n_est,
+                "Imagen": n_im
             })
             st.divider()
             
-        btn_actualizar_menu = st.form_submit_button("💾 Guardar Cambios en el Menú")
+        btn_actualizar_menu = st.form_submit_button("💾 Guardar Cambios del Menú")
         if btn_actualizar_menu:
             df_updated = pd.DataFrame(nuevos_datos)
             df_updated.to_csv(ARCHIVO_INVENTARIO, index=False)
-            st.success("¡Inventario y estatus actualizados correctamente!")
+            st.success("¡Menú actualizado correctamente!")
             st.rerun()
 
     st.markdown("---")
     
-    # 2. CONTROL DE PEDIDOS Y VENTAS
+    # 3. CONTROL DE PEDIDOS Y VENTAS
     st.subheader("📊 Pedidos Recibidos y Ventas Totales")
     
     if os.path.exists(ARCHIVO_HISTORIAL):
@@ -317,12 +387,6 @@ elif modo == "Dueño":
                 df_historial["Estatus"] = "⏳ Pendiente"
             if "ID" not in df_historial.columns:
                 df_historial["ID"] = range(len(df_historial))
-            if "Pago" not in df_historial.columns:
-                df_historial["Pago"] = "Efectivo"
-            if "Comprobante" not in df_historial.columns:
-                df_historial["Comprobante"] = "Sin comprobante"
-            if "Entrega" not in df_historial.columns:
-                df_historial["Entrega"] = "Recoge en tienda"
 
             col_m1, col_m2, col_m3 = st.columns(3)
             with col_m1:
@@ -379,7 +443,7 @@ elif modo == "Dueño":
 
             st.divider()
             st.subheader("📑 Tabla General de Historial")
-            cols_a_mostrar = [c for c in ['Fecha/Hora', 'Cliente', 'Entrega', 'Dirección', 'Pago', 'Total (MXN)', 'Estatus', 'Detalle'] if c in df_historial.columns]
+            cols_a_mostrar = [c for c in ['Fecha/Hora', 'Cliente', 'Entrega', 'Dirección', 'Pago', 'Total (MXN)', 'Estatus', 'Detalle'] if c in df_historial.cols if c in df_historial.columns] if 'cols' in dir(df_historial) else [c for c in ['Fecha/Hora', 'Cliente', 'Entrega', 'Dirección', 'Pago', 'Total (MXN)', 'Estatus', 'Detalle'] if c in df_historial.columns]
             st.dataframe(df_historial[cols_a_mostrar], use_container_width=True)
             
             if st.button("🗑️ Borrar Todo el Historial"):
@@ -388,4 +452,4 @@ elif modo == "Dueño":
         else:
             st.info("Aún no hay pedidos registrados en el historial.")
     else:
-        st.info("Aún no hay pedidos registrados.")
+            st.info("Aún no hay pedidos registrados.")
