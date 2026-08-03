@@ -62,12 +62,24 @@ if 'pedidos_realizados' not in st.session_state:
     st.session_state.pedidos_realizados = []
 
 # ----------------------------------------------------
-# BARRA LATERAL (MENÚ DE NAVEGACIÓN Y ACCESO DUEÑO)
+# BARRA LATERAL (OCULTAR ADMIN AL PÚBLICO)
 # ----------------------------------------------------
+PIN_CORRECTO = "123456" # Tu PIN de 6 dígitos
+
 st.sidebar.title("🍔 Manzanas Burger")
 st.sidebar.markdown("---")
 
-modo = st.sidebar.radio("Navegación", ["📝 Hacer Pedido", "🔐 Sección Dueño (Admin)"])
+# Verificamos si escribiste el PIN correcto en la barra lateral
+pin_ingresado = st.sidebar.text_input("Acceso:", type="password", max_chars=6, placeholder="Código...")
+
+# Si pones el PIN correcto, se abre la opción de administración. Si no, solo ven el menú.
+if pin_ingresado == PIN_CORRECTO:
+    st.sidebar.success("¡Modo Dueño Activado!")
+    modo = st.sidebar.radio("Navegación", ["📝 Hacer Pedido", "🔐 Sección Dueño (Admin)"])
+else:
+    if pin_ingresado != "":
+        st.sidebar.error("PIN incorrecto")
+    modo = "📝 Hacer Pedido"
 
 # ----------------------------------------------------
 # VISTA 1: HACER PEDIDO (CLIENTES)
@@ -170,53 +182,39 @@ if modo == "📝 Hacer Pedido":
         st.info("👆 Selecciona al menos un producto de la lista para armar tu pedido.")
 
 # ----------------------------------------------------
-# VISTA 2: SECCIÓN DUEÑO / ADMINISTRACIÓN (PROTEGIDA POR PIN)
+# VISTA 2: SECCIÓN DUEÑO / ADMINISTRACIÓN (OCULTA HASTA INGRESAR PIN)
 # ----------------------------------------------------
 elif modo == "🔐 Sección Dueño (Admin)":
     st.title("🔐 Panel de Administración")
     st.markdown("Área exclusiva para el control de ventas y pedidos del negocio.")
     st.markdown("---")
 
-    PIN_CORRECTO = "123456"
+    esconder_total = st.checkbox("👁️ Ocultar montos y total vendido en pantalla", value=False)
 
-    pin_ingresado = st.sidebar.text_input("Ingresa PIN de Dueño (6 dígitos):", type="password", max_chars=6)
+    total_ventas_acumulado = sum([p['total'] for p in st.session_state.pedidos_realizados])
+    total_pedidos_cuenta = len(st.session_state.pedidos_realizados)
 
-    if pin_ingresado == PIN_CORRECTO:
-        st.sidebar.success("¡Acceso concedido!")
-        st.markdown("### 📊 Resumen General del Negocio")
-
-        esconder_total = st.checkbox("👁️ Ocultar montos y total vendido en pantalla", value=False)
-
-        total_ventas_acumulado = sum([p['total'] for p in st.session_state.pedidos_realizados])
-        total_pedidos_cuenta = len(st.session_state.pedidos_realizados)
-
-        col1, col2 = st.columns(2)
-        with col1:
-            if esconder_total:
-                st.metric(label="Total Vendido", value="$ ••••••")
-            else:
-                st.metric(label="Total Vendido", value=f"${total_ventas_acumulado:.2f}")
-        with col2:
-            st.metric(label="Pedidos Totales", value=total_pedidos_cuenta)
-
-        st.markdown("---")
-        st.subheader("📜 Historial de Pedidos Recientes")
-
-        if st.session_state.pedidos_realizados:
-            for idx, p in enumerate(reversed(st.session_state.pedidos_realizados), 1):
-                with st.expander(f"Pedido #{total_pedidos_cuenta - idx + 1} - {p['cliente']} ({p['hora']})"):
-                    st.write(f"**Teléfono:** {p['telefono']}")
-                    st.write(f"**Tipo:** {p['tipo']}")
-                    st.write(f"**Método de Pago:** {p['pago']}")
-                    if esconder_total:
-                        st.write(f"**Total:** $ ••••••")
-                    else:
-                        st.write(f"**Total:** ${p['total']:.2f}")
+    col1, col2 = st.columns(2)
+    with col1:
+        if esconder_total:
+            st.metric(label="Total Vendido", value="$ ••••••")
         else:
-            st.info("Aún no hay registros de pedidos en esta sesión.")
-            
-    elif pin_ingresado == "":
-        st.warning("⚠️ Por favor, introduce tu PIN de 6 dígitos en la barra lateral para acceder al panel de administración.")
+            st.metric(label="Total Vendido", value=f"${total_ventas_acumulado:.2f}")
+    with col2:
+        st.metric(label="Pedidos Totales", value=total_pedidos_cuenta)
+
+    st.markdown("---")
+    st.subheader("📜 Historial de Pedidos Recientes")
+
+    if st.session_state.pedidos_realizados:
+        for idx, p in enumerate(reversed(st.session_state.pedidos_realizados), 1):
+            with st.expander(f"Pedido #{total_pedidos_cuenta - idx + 1} - {p['cliente']} ({p['hora']})"):
+                st.write(f"**Teléfono:** {p['telefono']}")
+                st.write(f"**Tipo:** {p['tipo']}")
+                st.write(f"**Método de Pago:** {p['pago']}")
+                if esconder_total:
+                    st.write(f"**Total:** $ ••••••")
+                else:
+                    st.write(f"**Total:** ${p['total']:.2f}")
     else:
-        st.sidebar.error("❌ PIN incorrecto. Inténtalo de nuevo.")
-        st.error("Acceso denegado. Introduce el PIN correcto en la barra lateral.")
+        st.info("Aún no hay registros de pedidos en esta sesión.")
