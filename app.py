@@ -7,7 +7,6 @@ import os
 # CONFIGURACIÓN GENERAL Y ESTILOS DE MARCA
 st.set_page_config(page_title="Manzanas Burger - Sistema", page_icon="🍔", layout="wide")
 
-# PERSONALIZACIÓN DE FORMATO Y ESTILOS (Colores de la marca)
 st.markdown("""
     <style>
     .stApp {
@@ -18,12 +17,6 @@ st.markdown("""
         font-size: 2.5rem;
         color: #ff4b4b;
         font-weight: 700;
-    }
-    .card-product {
-        background-color: #1f2937;
-        padding: 15px;
-        border-radius: 10px;
-        margin-bottom: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -38,11 +31,12 @@ DATOS_TRANSFERENCIA = """
 ARCHIVO_HISTORIAL = "pedidos_registrados.csv"
 ARCHIVO_INVENTARIO = "inventario_menu.csv"
 CARPETA_TICKETS = "comprobantes_pago"
+CARPETA_IMAGENES = "imagenes_menu"
 
-if not os.path.exists(CARPETA_TICKETS):
-    os.makedirs(CARPETA_TICKETS)
+for carpeta in [CARPETA_TICKETS, CARPETA_IMAGENES]:
+    if not os.path.exists(carpeta):
+        os.makedirs(carpeta)
 
-# MENÚ INICIAL AMPLIADO
 MENU_INICIAL = [
     {
         "ID": 1,
@@ -89,7 +83,6 @@ MENU_INICIAL = [
 def cargar_menu():
     if os.path.exists(ARCHIVO_INVENTARIO):
         df = pd.read_csv(ARCHIVO_INVENTARIO)
-        # Validar columnas críticas para evitar errores si el archivo es antiguo
         if "Categoria" not in df.columns:
             df["Categoria"] = "Hamburguesas"
         if "Imagen" not in df.columns:
@@ -123,7 +116,7 @@ def guardar_pedido(nombre, metodo_entrega, direccion, forma_pago, total, detalle
         
     df_hist.to_csv(ARCHIVO_HISTORIAL, index=False)
 
-# BARRA LATERAL DE NAVEGACIÓN
+# BARRA LATERAL
 st.sidebar.title("🍔 Menú de Navegación")
 opcion_vista = st.sidebar.selectbox("Selecciona la vista:", ["🛒 Vista Clientes (Hacer Pedido)", "🔐 Vista Dueño (Administración)"])
 
@@ -166,8 +159,13 @@ if modo == "Cliente":
             col_img, col_info, col_accion = st.columns([1, 2, 1.5])
             
             with col_img:
-                img_url = str(row['Imagen']) if pd.notna(row['Imagen']) and str(row['Imagen']).startswith("http") else "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500"
-                st.image(img_url, use_container_width=True)
+                img_path_or_url = str(row['Imagen'])
+                if img_path_or_url.startswith("http"):
+                    st.image(img_path_or_url, use_container_width=True)
+                elif os.path.exists(img_path_or_url):
+                    st.image(img_path_or_url, use_container_width=True)
+                else:
+                    st.image("https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500", use_container_width=True)
                     
             with col_info:
                 st.markdown(f"### {row['Nombre']}")
@@ -314,20 +312,36 @@ elif modo == "Bloqueado":
 # ==========================================
 elif modo == "Dueño":
     st.title("🔐 Panel de Administración - Dueño")
-    st.markdown("Agrega productos, edita imágenes por URL, cambia precios, controla el stock y revisa tus ventas.")
+    st.markdown("Sube imágenes en formato PNG/JPG desde tu equipo, edita precios, stock y gestiona ventas.")
 
-    # 1. AGREGAR NUEVO PRODUCTO
-    with st.expander("➕ Agregar Nuevo Producto (Hamburguesas, Hot Dogs, Bebidas, etc.)"):
+    # 1. AGREGAR NUEVO PRODUCTO CON SUBIDA DE IMAGEN
+    with st.expander("➕ Agregar Nuevo Producto (Sube tu imagen PNG/JPG o usa URL)"):
         with st.form("form_nuevo_prod"):
             n_cat = st.selectbox("Categoría", ["Hamburguesas", "Hot Dogs", "Bebidas", "Extras", "Postres"])
             n_nombre = st.text_input("Nombre del Producto")
             n_desc = st.text_area("Descripción")
             n_precio = st.number_input("Precio (MXN)", min_value=0.0, value=50.0)
             n_stock = st.number_input("Stock Inicial", min_value=0, value=20)
-            n_img = st.text_input("URL de la Imagen (pega el enlace web de la foto)", value="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500")
+            
+            tipo_img_nuevo = st.radio("¿Cómo deseas agregar la imagen?", ["Subir archivo (PNG / JPG)", "Usar enlace URL"])
+            archivo_subido_nuevo = None
+            n_img_url = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=500"
+            
+            if tipo_img_nuevo == "Subir archivo (PNG / JPG)":
+                archivo_subido_nuevo = st.file_uploader("Selecciona la imagen del producto:", type=["png", "jpg", "jpeg"])
+            else:
+                n_img_url = st.text_input("URL de la Imagen", value=n_img_url)
             
             btn_crear = st.form_submit_button("💾 Añadir al Menú")
             if btn_crear:
+                ruta_final_img = n_img_url
+                if archivo_subido_nuevo is not None:
+                    timestamp_img = str(int(datetime.now().timestamp()))
+                    nombre_img_seguro = f"{timestamp_img}_{archivo_subido_nuevo.name}"
+                    ruta_final_img = os.path.join(CARPETA_IMAGENES, nombre_img_seguro)
+                    with open(ruta_final_img, "wb") as f:
+                        f.write(archivo_subido_nuevo.getbuffer())
+                
                 df_m = cargar_menu()
                 nuevo_id = int(df_m['ID'].max() + 1) if not df_m.empty else 1
                 nuevo_reg_prod = pd.DataFrame([{
@@ -338,7 +352,7 @@ elif modo == "Dueño":
                     "Precio": n_precio,
                     "Stock": n_stock,
                     "Estado": "Disponible",
-                    "Imagen": n_img
+                    "Imagen": ruta_final_img
                 }])
                 df_m = pd.concat([df_m, nuevo_reg_prod], ignore_index=True)
                 df_m.to_csv(ARCHIVO_INVENTARIO, index=False)
@@ -347,28 +361,38 @@ elif modo == "Dueño":
 
     st.markdown("---")
 
-    # 2. GESTIÓN Y EDICIÓN DE IMÁGENES Y DATOS EXISTENTES
-    st.subheader("🍔 Editar Productos, Cambiar Imágenes (URLs) y Precios")
+    # 2. GESTIÓN Y EDICIÓN DE IMÁGENES EXISTENTES
+    st.subheader("🍔 Editar Platillos y Reemplazar Imágenes")
     df_menu = cargar_menu()
     
     with st.form("form_inventario"):
-        st.write("Modifica los datos, nombre, categoría, URL de imagen o estatus de cada producto:")
+        st.write("Modifica los datos o actualiza la imagen subiendo un archivo nuevo:")
         nuevos_datos = []
         for idx, row in df_menu.iterrows():
             st.markdown(f"### ID {row['ID']} - {row['Nombre']}")
-            c1, c2, c3 = st.columns(3)
+            c1, c2 = st.columns(2)
             with c1:
                 n_cat = st.text_input("Categoría", value=str(row['Categoria']), key=f"cat_{idx}")
                 n_nom = st.text_input("Nombre", value=str(row['Nombre']), key=f"nom_{idx}")
-            with c2:
                 n_pre = st.number_input("Precio ($)", min_value=0.0, value=float(row['Precio']), key=f"pre_{idx}")
+            with c2:
                 n_stk = st.number_input("Stock", min_value=0, value=int(row['Stock']), key=f"stk_{idx}")
-            with c3:
                 n_est = st.selectbox("Estatus", ["Disponible", "🚫 Agotado"], index=0 if row['Estado']=="Disponible" else 1, key=f"est_{idx}")
-                n_im = st.text_input("URL de Imagen", value=str(row['Imagen']), key=f"img_{idx}")
-            
+                
             n_desc = st.text_area("Descripción", value=str(row['Descripcion']), key=f"desc_{idx}")
             
+            st.write(f"Imagen actual: `{row['Imagen']}`")
+            archivo_cambio = st.file_uploader(f"Reemplazar imagen para {row['Nombre']} (Opcional)", type=["png", "jpg", "jpeg"], key=f"img_sub_{idx}")
+            
+            # Mantener la ruta previa por defecto
+            imagen_a_guardar = row['Imagen']
+            if archivo_cambio is not None:
+                timestamp_img = str(int(datetime.now().timestamp()))
+                nombre_img_seguro = f"{timestamp_img}_{archivo_cambio.name}"
+                imagen_a_guardar = os.path.join(CARPETA_IMAGENES, nombre_img_seguro)
+                with open(imagen_a_guardar, "wb") as f:
+                    f.write(archivo_cambio.getbuffer())
+
             nuevos_datos.append({
                 "ID": row['ID'],
                 "Categoria": n_cat,
@@ -377,15 +401,15 @@ elif modo == "Dueño":
                 "Precio": n_pre,
                 "Stock": n_stk,
                 "Estado": n_est,
-                "Imagen": n_im
+                "Imagen": imagen_a_guardar
             })
             st.divider()
             
-        btn_actualizar_menu = st.form_submit_button("💾 Guardar Todos los Cambios del Menú")
+        btn_actualizar_menu = st.form_submit_button("💾 Guardar Cambios del Menú")
         if btn_actualizar_menu:
             df_updated = pd.DataFrame(nuevos_datos)
             df_updated.to_csv(ARCHIVO_INVENTARIO, index=False)
-            st.success("¡Menú y diseño actualizados correctamente!")
+            st.success("¡Menú e imágenes actualizados correctamente!")
             st.rerun()
 
     st.markdown("---")
