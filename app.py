@@ -9,7 +9,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# Estilos CSS personalizados para un aspecto moderno tipo app de comida rápida
+# Estilos CSS personalizados
 st.markdown("""
 <style>
     .main {
@@ -67,7 +67,6 @@ if 'pedidos_realizados' not in st.session_state:
 st.sidebar.title("🍔 Manzanas Burger")
 st.sidebar.markdown("---")
 
-# Opciones visibles para todo el público
 modo = st.sidebar.radio("Navegación", ["📝 Hacer Pedido", "🔐 Sección Dueño (Admin)"])
 
 # ----------------------------------------------------
@@ -115,9 +114,11 @@ if modo == "📝 Hacer Pedido":
             
             direccion = ""
             if tipo_entrega == "🛵 Entrega a Domicilio":
-                direccion = st.text_area("Dirección exacta (Calle, Colonia, Referencias):")
+                direccion = st.text_area("Dirección exacta (Calle, Colonia, Número):")
             
-            comentarios = st.text_area("Comentarios adicionales (ej. sin cebolla, salsa aparte):")
+            link_maps = st.text_input("Link de Google Maps o ubicación (Opcional):")
+            metodo_pago = st.radio("Método de pago:", ["💵 Efectivo", "💳 Tarjeta (Terminal a domicilio / Recoger)"])
+            comentarios = st.text_area("Comentarios adicionales (ej. sin cebolla, cambio de $200):")
 
             enviar = st.form_submit_button("🚀 Enviar Pedido por WhatsApp")
 
@@ -127,13 +128,16 @@ if modo == "📝 Hacer Pedido":
                 elif tipo_entrega == "🛵 Entrega a Domicilio" and not direccion:
                     st.error("Por favor, ingresa tu dirección para el envío a domicilio.")
                 else:
-                    # Armar texto para WhatsApp
+                    # Armar texto detallado para WhatsApp
                     mensaje = f"*¡NUEVO PEDIDO DE MANZANAS BURGER!* 🍔\n\n"
                     mensaje += f"*Cliente:* {nombre_cliente}\n"
                     mensaje += f"*Teléfono:* {telefono_cliente}\n"
                     mensaje += f"*Tipo:* {tipo_entrega}\n"
                     if tipo_entrega == "🛵 Entrega a Domicilio":
                         mensaje += f"*Dirección:* {direccion}\n"
+                    if link_maps:
+                        mensaje += f"*Ubicación Maps:* {link_maps}\n"
+                    mensaje += f"*Pago con:* {metodo_pago}\n"
                     if comentarios:
                         mensaje += f"*Notas:* {comentarios}\n"
                     
@@ -150,13 +154,13 @@ if modo == "📝 Hacer Pedido":
                         "cliente": nombre_cliente,
                         "telefono": telefono_cliente,
                         "total": total_pedido,
-                        "tipo": tipo_entrega
+                        "tipo": tipo_entrega,
+                        "pago": metodo_pago
                     }
                     st.session_state.pedidos_realizados.append(nuevo_registro)
 
-                    # Codificar URL para WhatsApp (Tu número actual configurado)
-                    # NOTA: Puedes cambiar este número de WhatsApp cuando lo necesites
-                    numero_negocio = "5215500000000" # Reemplaza con tu número personal o de negocio con lada 521
+                    # Número de WhatsApp de destino (reemplaza con tu número con lada 52)
+                    numero_negocio = "5215500000000" 
                     url_whatsapp = f"https://wa.me/{numero_negocio}?text={urllib.parse.quote(mensaje)}"
 
                     st.success("¡Pedido generado con éxito! Redirigiendo a WhatsApp...")
@@ -173,7 +177,6 @@ elif modo == "🔐 Sección Dueño (Admin)":
     st.markdown("Área exclusiva para el control de ventas y pedidos del negocio.")
     st.markdown("---")
 
-    # PIN de 6 dígitos predeterminado (puedes cambiarlo aquí mismo si deseas)
     PIN_CORRECTO = "123456"
 
     pin_ingresado = st.sidebar.text_input("Ingresa PIN de Dueño (6 dígitos):", type="password", max_chars=6)
@@ -182,7 +185,6 @@ elif modo == "🔐 Sección Dueño (Admin)":
         st.sidebar.success("¡Acceso concedido!")
         st.markdown("### 📊 Resumen General del Negocio")
 
-        # Opción para esconder el total vendido
         esconder_total = st.checkbox("👁️ Ocultar montos y total vendido en pantalla", value=False)
 
         total_ventas_acumulado = sum([p['total'] for p in st.session_state.pedidos_realizados])
@@ -205,6 +207,7 @@ elif modo == "🔐 Sección Dueño (Admin)":
                 with st.expander(f"Pedido #{total_pedidos_cuenta - idx + 1} - {p['cliente']} ({p['hora']})"):
                     st.write(f"**Teléfono:** {p['telefono']}")
                     st.write(f"**Tipo:** {p['tipo']}")
+                    st.write(f"**Método de Pago:** {p['pago']}")
                     if esconder_total:
                         st.write(f"**Total:** $ ••••••")
                     else:
